@@ -1,8 +1,21 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+
 load_dotenv()
-from db.connection import get_db
+from app.endpoints import users
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("app.log")
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 # app.add_middleware(SessionMiddleware, secret_key='your-secret-key')
@@ -24,6 +37,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(users.router)
 
 
 @app.get('/',
