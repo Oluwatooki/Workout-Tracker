@@ -55,17 +55,17 @@ cover/
 *.mo
 *.pot
 
-# Django stuff:
+# Django stuff.txt:
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Flask stuff:
+# Flask stuff.txt:
 instance/
 .webassets-cache
 
-# Scrapy stuff:
+# Scrapy stuff.txt:
 .scrapy
 
 # Sphinx documentation
@@ -114,7 +114,7 @@ ipython_config.py
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
-# Celery stuff
+# Celery stuff.txt
 celerybeat-schedule
 celerybeat.pid
 
