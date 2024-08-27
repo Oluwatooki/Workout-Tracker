@@ -47,16 +47,8 @@ async def login(
         access_token = await security.create_access_token(data={'user_id': user['user_id']})
         logger.info(f'User {user["user_id"]} logged in')
 
-        user = user_schemas.UserOut(
-            user_id=user['user_id'],
-            email=user['email'],
-            created_date=user['created_date'],
-            first_name=user['first_name'],
-            last_name=user['last_name']
-        )
-
         token = user_schemas.Token(access_token=access_token, token_type="bearer")
-        return user_schemas.Login(user=user, token=token)
+        return token
 
     finally:
         conn.close()
