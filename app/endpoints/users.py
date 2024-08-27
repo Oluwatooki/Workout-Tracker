@@ -33,7 +33,6 @@ async def create_user(
         cursor.execute(insert_query, user_data)
         new_user = cursor.fetchone()
 
-
     except psycopg2.errors.UniqueViolation as error:
         logger.warning(f"Attempt to create user with duplicate email: {user_data['email']}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,

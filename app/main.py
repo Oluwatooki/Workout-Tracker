@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
-from app.endpoints import users
+from app.endpoints import users, login
 import logging
 
 logging.basicConfig(
@@ -39,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(users.router)
+app.include_router(login.router)
 
 
 @app.get('/',

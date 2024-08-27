@@ -39,3 +39,13 @@ class UserCreate(UserBase):
 class UserOut(UserBase):
     user_id: UUID
     created_date: datetime.datetime
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    """Token Data"""
+    user_id: str | None = None
