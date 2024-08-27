@@ -1,9 +1,9 @@
 import logging
 from fastapi import HTTPException, status, APIRouter, Depends, Request, Query
 import psycopg2
-import app.schemas.user_schema as user_schema
-import app.db.connection as connection
-import app.core.utils as utils
+from app.schemas import user_schemas
+from app.db import connection
+from app.core import utils
 
 router = APIRouter(tags=['Users'])
 logger = logging.getLogger(__name__)
@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 @router.post("/register",
              status_code=status.HTTP_201_CREATED,
              summary='Creating a new user in the database',
-             response_model=user_schema.UserOut
+             response_model=user_schemas.UserOut
              )
 async def create_user(
-        user_data: user_schema.UserCreate,
+        user_data: user_schemas.UserCreate,
         database_access: list = Depends(connection.get_db)):
     conn, cursor = database_access
 

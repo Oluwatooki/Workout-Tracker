@@ -17,7 +17,7 @@ def get_db():
                 user=settings.DATABASE_USERNAME,
                 password=settings.DATABASE_PASSWORD,
                 port=settings.DATABASE_PORT,
-                cursor_factory=RealDictCursor
+                cursor_factory=RealDictCursor,
             )
             cursor = conn.cursor()
             break
