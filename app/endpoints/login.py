@@ -6,7 +6,7 @@ from app.db import connection
 from app.core import utils
 from app.core import security
 
-router = APIRouter(tags=['Login'], prefix='/v1/auth')
+router = APIRouter(tags=['Login'])
 logger = logging.getLogger(__name__)
 cred_error = 'Invalid Credentials'
 

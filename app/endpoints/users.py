@@ -5,11 +5,11 @@ import app.schemas.user_schema as user_schema
 import app.db.connection as connection
 import app.core.utils as utils
 
-router = APIRouter(prefix='/v1/users', tags=['Users'])
+router = APIRouter(tags=['Users'])
 logger = logging.getLogger(__name__)
 
 
-@router.post("/create",
+@router.post("/register",
              status_code=status.HTTP_201_CREATED,
              summary='Creating a new user in the database',
              response_model=user_schema.UserOut
