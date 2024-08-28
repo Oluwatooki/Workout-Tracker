@@ -8,7 +8,7 @@ from app.core.config import settings
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.JWT_ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = 1  # settings.ACCESS_TOKEN_EXPIRES_MINUTES
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRES_MINUTES
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 logger = logging.getLogger(__name__)
 
@@ -45,5 +45,4 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail="Could Not Validate credentials!",
                                           headers={"WWW-Authenticate": "Bearer"})
-
     return verify_access_token(token, credentials_exception)

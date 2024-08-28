@@ -60,4 +60,4 @@ async def login(
             status_code=status.HTTP_200_OK,
             )
 async def get_current_user(current_user: users_schemas.TokenData = Depends(security.get_current_user)):
-    return {'detail': 'user is logged in', 'user_id': current_user.user_id}
+    return {'detail': 'user is logged in', 'id': current_user.user_id}
