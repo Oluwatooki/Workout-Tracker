@@ -1,4 +1,7 @@
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -11,7 +14,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRES_MINUTES: int
     JWT_ALGORITHM: str
-
 
     class Config:
         env_file = '../.env'
