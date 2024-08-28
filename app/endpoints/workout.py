@@ -90,3 +90,12 @@ async def create_workout_plan(
         created_at=plan['created_at'],
         exercises=exercises_out,
     )
+
+    # The function first inserts a new workout plan (check workout_schemas.WorkoutPlanCreate)
+    # into the workout_plans table and retrieves details
+    # such as plan_id, user_id, name, description,and created_at from the inserted record.
+    # It then processes each exercise from the workout plan(check workout_schemas.WorkoutPlanCreate),
+    # executing SQL queries to add them to the workout_plan_exercises table.
+    # After completing these operations,
+    # the function saves this information to the database, and returns the newly created workout plan
+    # along with its associated exercises.

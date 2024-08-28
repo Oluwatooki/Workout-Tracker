@@ -15,19 +15,8 @@ CREATE TABLE exercises (
     description TEXT,
     category VARCHAR(50) NOT NULL  -- e.g., cardio, strength, flexibility
 );
-
--- Table to store exercises associated with workout plans
-CREATE TABLE workout_plan_exercises (
-    plan_exercise_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    plan_id UUID NOT NULL,
-    exercise_id INT NOT NULL,
-    sets INT NOT NULL,
-    reps INT NOT NULL,
-    weight DECIMAL(10, 2),
-    FOREIGN KEY (plan_id) REFERENCES workout_plans(plan_id) ON DELETE CASCADE,
-    FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id)
-);
-
+--The workout_plans table defines individual workout plans, while the workout_plan_exercises table
+--links these plans to specific exercises, detailing the exercises included in each plan.
 
 CREATE TABLE workout_plans (
     plan_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -53,3 +42,16 @@ CREATE TRIGGER set_timestamp
 BEFORE UPDATE ON workout_plans
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
+
+
+CREATE TABLE workout_plan_exercises (
+    plan_exercise_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    plan_id UUID NOT NULL,
+    exercise_id INT NOT NULL,
+    sets INT NOT NULL,
+    reps INT NOT NULL,
+    weight DECIMAL(10, 2),
+    FOREIGN KEY (plan_id) REFERENCES workout_plans(plan_id) ON DELETE CASCADE,
+    FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id)
+);
+
