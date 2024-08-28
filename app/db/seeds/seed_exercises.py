@@ -47,12 +47,13 @@ def insert_exercise(conn, cursor, exercise):
 
 def seed_exercise_data():
     conn,cursor = connection.get_db()
-
     for exercise in exercises:
         try:
             insert_exercise(conn=conn, cursor=cursor, exercise=exercise)
         except Exception as error:
             print(f"Error inserting exercise {exercise['name']}: {error}")
+    conn.close()
+    cursor.close()
 
 
 if __name__ == '__main__':

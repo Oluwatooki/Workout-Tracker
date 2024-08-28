@@ -1,7 +1,7 @@
 import logging
 from fastapi import HTTPException, status, APIRouter, Depends, Request, Query
 import psycopg2
-from app.schemas import user_schemas
+from app.schemas import users_schemas
 from app.db import connection
 from app.core import utils
 from psycopg2 import sql
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
     "/register",
     status_code=status.HTTP_201_CREATED,
     summary='Creating a new user in the database',
-    response_model=user_schemas.UserOut
+    response_model=users_schemas.UserOut
 )
 async def create_user(
-        user_data: user_schemas.UserCreate,
+        user_data: users_schemas.UserCreate,
         database_access: list = Depends(connection.get_db)):
     conn, cursor = database_access
 
@@ -48,12 +48,13 @@ async def create_user(
         logger.warning(f"Attempt to create user with duplicate email: {user_data['email']}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Email already in use")
-    except Exception as e:
-        logger.error(f"Error occurred while creating user: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as error:
+        logger.error(f"Error occurred while creating user: {str(error)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))
     else:
         conn.commit()
-        logger.info(f"User created successfully: {new_user}")
+        logger.info(f"User created successfully: {new_user['user_id']}")
         return new_user
     finally:
         conn.close()
+        cursor.close()

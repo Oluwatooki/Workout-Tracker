@@ -1,13 +1,10 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-
-load_dotenv()
-from app.endpoints import users, login
+from app.endpoints import users, login, exercises
 import logging
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
@@ -40,6 +37,7 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(login.router)
+app.include_router(exercises.router)
 
 
 @app.get('/',
