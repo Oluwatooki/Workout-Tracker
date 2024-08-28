@@ -1,6 +1,5 @@
 import logging
 import uvicorn
-
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":

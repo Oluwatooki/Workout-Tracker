@@ -46,11 +46,6 @@ class Token(BaseModel):
     token_type: str
 
 
-class Login(BaseModel):
-    user: UserOut
-    token: Token
-
-
 class TokenData(BaseModel):
     """Token Data"""
     user_id: str | None = None

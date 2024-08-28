@@ -8,3 +8,10 @@ CREATE TABLE users (
     last_name VARCHAR(100),
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE exercises (
+    exercise_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) NOT NULL  -- e.g., cardio, strength, flexibility
+);

@@ -1,7 +1,7 @@
 import logging
 from jose import jwt, JWTError
 from datetime import timedelta, datetime
-from app.schemas import user_schemas
+from app.schemas import users_schemas
 from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from app.core.config import settings
@@ -22,7 +22,7 @@ async def create_access_token(data: dict):
     return encoded_jwt
 
 
-def verify_access_token(token: str, credentials_exception) -> user_schemas.TokenData:
+def verify_access_token(token: str, credentials_exception) -> users_schemas.TokenData:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("user_id")
@@ -31,7 +31,7 @@ def verify_access_token(token: str, credentials_exception) -> user_schemas.Token
             logger.error('Could not validate credentials')
             raise credentials_exception
 
-        token_data = user_schemas.TokenData(user_id=str(user_id))
+        token_data = users_schemas.TokenData(user_id=str(user_id))
     except JWTError as error:
         logger.error(error)
         raise HTTPException(status_code=401, detail=str(error))
