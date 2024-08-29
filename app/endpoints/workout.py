@@ -40,7 +40,6 @@ async def create_workout_plan(
     plan_id = plan['plan_id']
     exercises_out = []
 
-    # Insert exercises into workout plan
     insert_exercise_query = sql.SQL("""
         INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight,comments)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -49,12 +48,7 @@ async def create_workout_plan(
     try:
         for exercise in workout_plan.exercises:
             cursor.execute(insert_exercise_query, (
-                plan_id,
-                exercise.exercise_id,
-                exercise.sets,
-                exercise.reps,
-                exercise.weight,
-                exercise.comments
+                plan_id, exercise.exercise_id, exercise.sets, exercise.reps, exercise.weight, exercise.comments
             ))
             exercise_data = cursor.fetchone()
             if exercise_data:
@@ -69,16 +63,14 @@ async def create_workout_plan(
         logger.error(f"An error occurred while inserting exercises: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
-    # Commit transaction and close connection
     conn.commit()
     cursor.close()
     conn.close()
 
-    # Return the created workout plan with exercises
-    return workout_schemas.WorkoutPlanOut(plan_id=plan['plan_id'], user_id=plan['user_id'], name=plan['name'],
-                                          description=plan['description'], created_at=plan['created_at'],
-                                          exercises=exercises_out,
-                                          )
+    plan = dict(plan)
+    plan.update({'exercises': exercises_out})
+
+    return workout_schemas.WorkoutPlanOut(**plan)
 
     # The function first inserts a new workout plan (check workout_schemas.WorkoutPlanCreate)
     # into the workout_plans table and retrieves details
@@ -189,7 +181,101 @@ async def update_workout_plan(
     cursor.close()
     conn.close()
 
-    return workout_schemas.WorkoutPlanOut(
-        plan_id=updated_plan['plan_id'],user_id=updated_plan['user_id'],name=updated_plan['name'],
-        description=updated_plan['description'],created_at=updated_plan['created_at'],exercises=exercises_out
-    )
+    updated_plan = dict(updated_plan)
+    updated_plan.update({'exercises': exercises_out})
+
+    return workout_schemas.WorkoutPlanOut(**updated_plan)
+
+
+@router.get(
+    "/workout-plans",
+    status_code=status.HTTP_200_OK,
+    summary="List all workout plans for the current user",
+    # response_model=list[workout_schemas.WorkoutPlanOut]
+)
+async def list_workout_plans(
+        database_access: list = Depends(connection.get_db),
+        current_user: users_schemas.TokenData = Depends(security.get_current_user)
+):
+    conn, cursor = database_access
+    user_id = current_user.user_id
+
+    select_plans_query = sql.SQL("""
+        SELECT plan_id, user_id, name, description, created_at, updated_at
+        FROM workout_plans
+        WHERE user_id = %s;
+    """)
+    try:
+        cursor.execute(select_plans_query, (user_id,))
+        plans = cursor.fetchall()
+    except Exception as error:
+        logger.error(f"Error occurred: {str(error)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))
+
+    if not plans:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No workout plans found for the user."
+        )
+    for i, plan in enumerate(plans):
+        select_plans_exercises_query = sql.SQL("""
+            SELECT *
+            FROM workout_plan_exercises
+            WHERE plan_id = %s;
+        """)
+
+        cursor.execute(select_plans_exercises_query, (plan['plan_id'],))
+        exercises = cursor.fetchall()
+        plans[i].update({'exercises': exercises})
+        plans[i].update({'metadata': {'exercise_count': len(exercises)}})
+
+    return plans
+
+
+@router.get(
+    "/workout-plans/{plan_id}",
+    status_code=status.HTTP_200_OK,
+    summary="List a specific workout plan for the current user",
+    # response_model=list[workout_schemas.WorkoutPlanOut]
+)
+async def get_workout_plan(
+        plan_id: str,
+        database_access: list = Depends(connection.get_db),
+        current_user: users_schemas.TokenData = Depends(security.get_current_user)
+):
+    conn, cursor = database_access
+    user_id = current_user.user_id
+
+    select_plan_query = sql.SQL("""
+        SELECT plan_id, user_id, name, description, created_at, updated_at
+        FROM workout_plans
+        WHERE user_id = %s AND plan_id = %s;
+    """)
+    try:
+        cursor.execute(select_plan_query, (user_id, plan_id,))
+        plan = cursor.fetchone()
+    except Exception as error:
+        logger.error(f"Error occurred: {str(error)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))
+
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No workout plans found for the user."
+        )
+
+    select_plan_exercises_query = sql.SQL("""
+        SELECT *
+        FROM workout_plan_exercises
+        WHERE plan_id = %s;
+    """)
+    try:
+        cursor.execute(select_plan_exercises_query, (plan['plan_id'],))
+        exercises = cursor.fetchall()
+        plan.update({'exercises': exercises})
+        plan.update({'metadata': {'exercise_count': len(exercises)}})
+    except Exception as error:
+        logger.error(f"Error occurred: {str(error)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))
+
+    return plan

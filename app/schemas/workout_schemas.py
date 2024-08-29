@@ -34,6 +34,7 @@ class WorkoutPlanOut(BaseModel):
     name: str
     description: str | None = None
     created_at: datetime.datetime
+    updated_at: datetime.datetime
     exercises: list[ExercisePlanOut]
 
 
