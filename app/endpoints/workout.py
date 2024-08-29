@@ -52,7 +52,15 @@ async def create_workout_plan(
             ))
             exercise_data = cursor.fetchone()
             if exercise_data:
-                exercises_out.append(workout_schemas.ExercisePlanOut(**dict(exercise_data)))
+
+                select_query = sql.SQL("""SELECT name FROM exercises WHERE exercise_id = %s""")
+                cursor.execute(select_query, (exercise.exercise_id,))
+                name = cursor.fetchone()['name']
+
+                exercise_data = dict(exercise_data)
+                exercise_data.update({'exercise_name':name})
+                exercises_out.append(workout_schemas.ExercisePlanOut(**exercise_data))
+
             else:
                 logger.warning(f"Exercise data retrieval returned no results for exercise: {exercise.exercise_id}")
     except psycopg2.errors.ForeignKeyViolation as error:
@@ -121,7 +129,7 @@ async def delete_workout_plan(
         cursor.close()
         conn.close()
 
-    return {"detail": "Workout plan deleted successfully"}
+    return {"message": "Workout plan deleted successfully"}
 
 
 @router.put(
@@ -138,7 +146,6 @@ async def update_workout_plan(
 ):
     conn, cursor = database_access
     user_id = current_user.user_id
-
 
     update_plan_query = sql.SQL("""
         UPDATE workout_plans
@@ -157,10 +164,8 @@ async def update_workout_plan(
         logger.error(f"An error occurred while updating the workout plan: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
-    delete_exercises_query = sql.SQL("""
-        DELETE FROM workout_plan_exercises WHERE plan_id = %s and user_id = %s
-    """)
-    cursor.execute(delete_exercises_query, (plan_id, user_id,))
+    delete_exercises_query = sql.SQL(""" DELETE FROM workout_plan_exercises WHERE plan_id = %s""")
+    cursor.execute(delete_exercises_query, (plan_id,))
 
     insert_exercise_query = sql.SQL("""
         INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight, comments)
@@ -174,7 +179,14 @@ async def update_workout_plan(
                                                    exercise.reps, exercise.weight, exercise.comments
                                                    ))
             exercise_data = cursor.fetchone()
-            exercises_out.append(exercise_data)
+
+            select_query = sql.SQL("""SELECT name FROM exercises WHERE exercise_id = %s""")
+            cursor.execute(select_query, (exercise.exercise_id,))
+            name = cursor.fetchone()['name']
+
+            exercise_data = dict(exercise_data)
+            exercise_data.update({'exercise_name': name})
+            exercises_out.append(workout_schemas.ExercisePlanOut(**exercise_data))
     except psycopg2.errors.ForeignKeyViolation as error:
         logger.error(f"An error occurred while updating the workout plan: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -236,6 +248,12 @@ async def list_workout_plans(
 
         cursor.execute(select_plans_exercises_query, (plan['plan_id'],))
         exercises = cursor.fetchall()
+        for x,exercise in enumerate(exercises):
+            select_query = sql.SQL("""SELECT name FROM exercises WHERE exercise_id = %s""")
+            cursor.execute(select_query, (exercise['exercise_id'],))
+            name = cursor.fetchone()['name']
+
+            exercises[x].update({'exercise_name': name})
         plans[i].update({'exercises': exercises})
         plans[i].update({'metadata': {'exercise_count': len(exercises)}})
 
@@ -282,6 +300,12 @@ async def get_workout_plan(
     try:
         cursor.execute(select_plan_exercises_query, (plan['plan_id'],))
         exercises = cursor.fetchall()
+        for x,exercise in enumerate(exercises):
+            select_query = sql.SQL("""SELECT name FROM exercises WHERE exercise_id = %s""")
+            cursor.execute(select_query, (exercise['exercise_id'],))
+            name = cursor.fetchone()['name']
+
+            exercises[x].update({'exercise_name': name})
         plan.update({'exercises': exercises})
         plan.update({'metadata': {'exercise_count': len(exercises)}})
     except Exception as error:

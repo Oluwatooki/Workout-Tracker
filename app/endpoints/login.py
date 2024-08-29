@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, status, HTTPException, Depends, Response, Request
+from fastapi import APIRouter, status, HTTPException, Depends
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from app.schemas import users_schemas
 from app.db import connection
@@ -25,7 +25,6 @@ async def login(
     user_email = str(user_credentials.username)
 
     try:
-        # Use psycopg2.sql.SQL to safely construct the query
         query = sql.SQL("""
             SELECT * FROM {table} WHERE {field} = %s
         """).format(

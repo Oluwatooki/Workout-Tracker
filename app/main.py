@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.endpoints import users, login, exercises,workout
+from app.endpoints import users, login, exercises,workout,scheduled_workouts
 import logging
 
 logging.basicConfig(
@@ -39,6 +39,7 @@ app.include_router(users.router)
 app.include_router(login.router)
 app.include_router(exercises.router)
 app.include_router(workout.router)
+app.include_router(scheduled_workouts.router)
 
 
 @app.get('/',

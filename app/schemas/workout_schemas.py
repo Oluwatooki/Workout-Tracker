@@ -17,7 +17,8 @@ class ExercisePlanCreate(ExercisePlanBase):
 
 
 class ExercisePlanOut(ExercisePlanBase):
-    plan_exercise_id: UUID
+    # plan_exercise_id: UUID
+    exercise_name: str
 
 
 class WorkoutPlanBase(BaseModel):

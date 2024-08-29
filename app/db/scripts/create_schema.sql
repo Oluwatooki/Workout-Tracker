@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(100),
@@ -10,7 +10,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE exercises (
-    id SERIAL PRIMARY KEY,
+    exercise_id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     category VARCHAR(50) NOT NULL  -- e.g., cardio, strength, flexibility
@@ -25,10 +25,10 @@ CREATE TABLE workout_plans (
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Trigger function to update `updated_at` column
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -37,7 +37,7 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql';
 
--- Trigger to automatically update the `updated_at` column before an update
+
 CREATE TRIGGER set_timestamp
 BEFORE UPDATE ON workout_plans
 FOR EACH ROW
@@ -56,3 +56,14 @@ CREATE TABLE workout_plan_exercises (
     FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id)
 );
 
+
+CREATE TABLE scheduled_workouts (
+    scheduled_workout_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    plan_id UUID REFERENCES workout_plans(plan_id),
+    user_id UUID NOT NULL ON DELETE CASCADE,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TIME NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
