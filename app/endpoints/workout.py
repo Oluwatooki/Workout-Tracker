@@ -74,13 +74,12 @@ async def create_workout_plan(
 
     # The function first inserts a new workout plan (check workout_schemas.WorkoutPlanCreate)
     # into the workout_plans table and retrieves details
-    # such as plan_id, user_id, name, description,and created_at from the inserted record.
+    # like plan_id, user_id, name, description,and created_at from the inserted record.
     # It then processes each exercise from the workout plan(check workout_schemas.WorkoutPlanCreate),
     # executing SQL queries to add them to the workout_plan_exercises table.
     # After completing these operations,
-    # the function saves this information to the database, and returns the newly created workout plan
+    # the function saves this information to the database, and returns the created workout plan
     # along with its associated exercises
-    #
 
 
 @router.delete(
@@ -96,27 +95,33 @@ async def delete_workout_plan(
     conn, cursor = database_access
     user_id = current_user.user_id
 
-    # Check if the workout plan exists and belongs to the current user
-    select_plan_query = sql.SQL("""
-        SELECT * FROM workout_plans
+    delete_plan_query = sql.SQL("""
+        DELETE FROM workout_plans
         WHERE plan_id = %s AND user_id = %s
+        RETURNING plan_id;
     """)
 
-    cursor.execute(select_plan_query, (plan_id, user_id))
-    plan = cursor.fetchone()
+    try:
+        cursor.execute(delete_plan_query, (plan_id, user_id))
+        deleted_plan = cursor.fetchone()
 
-    if not plan:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Workout plan not found or you do not have permission to modify it")
+        if not deleted_plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workout plan not found or you do not have permission to delete it"
+            )
 
-    delete_plan_query = sql.SQL("""
-            DELETE FROM workout_plans
-            WHERE plan_id = %s AND user_id = %s
-        """)
+        conn.commit()
 
-    cursor.execute(delete_plan_query, (plan_id, user_id))
-    conn.commit()
-    return {'detail':'Workout Plan Successfully deleted'}
+    except Exception as error:
+        logger.error(f"An error occurred while deleting the workout plan: {str(error)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return {"detail": "Workout plan deleted successfully"}
 
 
 @router.put(
@@ -149,12 +154,13 @@ async def update_workout_plan(
                                 detail="Workout plan not found or not owned by user")
 
     except Exception as error:
+        logger.error(f"An error occurred while updating the workout plan: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
     delete_exercises_query = sql.SQL("""
-        DELETE FROM workout_plan_exercises WHERE plan_id = %s
+        DELETE FROM workout_plan_exercises WHERE plan_id = %s and user_id = %s
     """)
-    cursor.execute(delete_exercises_query, (plan_id,))
+    cursor.execute(delete_exercises_query, (plan_id, user_id,))
 
     insert_exercise_query = sql.SQL("""
         INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight, comments)
@@ -170,9 +176,11 @@ async def update_workout_plan(
             exercise_data = cursor.fetchone()
             exercises_out.append(exercise_data)
     except psycopg2.errors.ForeignKeyViolation as error:
+        logger.error(f"An error occurred while updating the workout plan: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f'Exercise id {exercise.exercise_id} does not exist')
     except Exception as error:
+        logger.error(f"An error occurred while updating the workout plan: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
     conn.commit()
@@ -208,10 +216,10 @@ async def list_workout_plans(
         OFFSET %s;
     """)
     try:
-        cursor.execute(select_plans_query, (user_id,limit,skip))
+        cursor.execute(select_plans_query, (user_id, limit, skip))
         plans = cursor.fetchall()
     except Exception as error:
-        logger.error(f"Error occurred: {str(error)}", exc_info=True)
+        logger.error(f"Error occurred while getting a list of all workout plans: {str(error)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))
 
     if not plans:
