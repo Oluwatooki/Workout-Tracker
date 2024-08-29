@@ -195,7 +195,9 @@ async def update_workout_plan(
 )
 async def list_workout_plans(
         database_access: list = Depends(connection.get_db),
-        current_user: users_schemas.TokenData = Depends(security.get_current_user)
+        current_user: users_schemas.TokenData = Depends(security.get_current_user),
+        limit: int = 2,
+        skip: int = 0,
 ):
     conn, cursor = database_access
     user_id = current_user.user_id
@@ -203,10 +205,12 @@ async def list_workout_plans(
     select_plans_query = sql.SQL("""
         SELECT plan_id, user_id, name, description, created_at, updated_at
         FROM workout_plans
-        WHERE user_id = %s;
+        WHERE user_id = %s
+        LIMIT %s
+        OFFSET %s;
     """)
     try:
-        cursor.execute(select_plans_query, (user_id,))
+        cursor.execute(select_plans_query, (user_id,limit,skip))
         plans = cursor.fetchall()
     except Exception as error:
         logger.error(f"Error occurred: {str(error)}", exc_info=True)
