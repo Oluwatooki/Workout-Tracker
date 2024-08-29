@@ -129,7 +129,7 @@ async def delete_workout_plan(
         cursor.close()
         conn.close()
 
-    return {"detail": "Workout plan deleted successfully"}
+    return {"message": "Workout plan deleted successfully"}
 
 
 @router.put(
