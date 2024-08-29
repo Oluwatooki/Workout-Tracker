@@ -56,3 +56,11 @@ CREATE TABLE workout_plan_exercises (
     FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id)
 );
 
+CREATE TABLE scheduled_workouts (
+    scheduled_workout_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    plan_id UUID NOT NULL REFERENCES workout_plans(plan_id) ON DELETE CASCADE,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TIME NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
