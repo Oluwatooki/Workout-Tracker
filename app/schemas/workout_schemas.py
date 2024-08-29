@@ -8,12 +8,13 @@ class ExercisePlanIn(BaseModel):
     exercise_id: int
     sets: int
     reps: int
-    weight: float = None
+    weight: float | int | None = None
+    comments: str | None = None
 
 
 class WorkoutPlanCreate(BaseModel):
     name: str
-    description: str = None
+    description: str | None = None
     exercises: list[ExercisePlanIn]
 
 
@@ -23,13 +24,20 @@ class ExercisePlanOut(BaseModel):
     exercise_id: int
     sets: int
     reps: int
-    weight: float = None
+    weight: float | int | None = None
+    comments: str | None = None
 
 
 class WorkoutPlanOut(BaseModel):
     plan_id: UUID
     user_id: UUID
     name: str
-    description: str = None
+    description: str | None = None
     created_at: datetime.datetime
     exercises: list[ExercisePlanOut]
+
+
+class WorkoutPlanUpdate(BaseModel):
+    name: str
+    description: str
+    exercises: list[ExercisePlanIn]

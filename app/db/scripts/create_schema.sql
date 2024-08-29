@@ -51,6 +51,7 @@ CREATE TABLE workout_plan_exercises (
     sets INT NOT NULL,
     reps INT NOT NULL,
     weight DECIMAL(10, 2),
+    comments TEXT,
     FOREIGN KEY (plan_id) REFERENCES workout_plans(plan_id) ON DELETE CASCADE,
     FOREIGN KEY (exercise_id) REFERENCES exercises(exercise_id)
 );

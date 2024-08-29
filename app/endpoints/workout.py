@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
     response_model=workout_schemas.WorkoutPlanOut,
 )
 async def create_workout_plan(
-    workout_plan: workout_schemas.WorkoutPlanCreate,
-    database_access: list = Depends(connection.get_db),
-    current_user: users_schemas.TokenData = Depends(security.get_current_user)
+        workout_plan: workout_schemas.WorkoutPlanCreate,
+        database_access: list = Depends(connection.get_db),
+        current_user: users_schemas.TokenData = Depends(security.get_current_user)
 ):
     conn, cursor = database_access
     user_id = current_user.user_id
@@ -42,9 +42,9 @@ async def create_workout_plan(
 
     # Insert exercises into workout plan
     insert_exercise_query = sql.SQL("""
-        INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight)
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING plan_exercise_id, plan_id, exercise_id, sets, reps, weight;
+        INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight,comments)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING plan_exercise_id, plan_id, exercise_id, sets, reps, weight,comments;
     """)
     try:
         for exercise in workout_plan.exercises:
@@ -53,19 +53,12 @@ async def create_workout_plan(
                 exercise.exercise_id,
                 exercise.sets,
                 exercise.reps,
-                exercise.weight
+                exercise.weight,
+                exercise.comments
             ))
             exercise_data = cursor.fetchone()
-            if exercise_data:  # Ensure data is valid
-                exercise_entry = workout_schemas.ExercisePlanOut(**{
-                    'plan_exercise_id': exercise_data['plan_exercise_id'],
-                    'plan_id': exercise_data['plan_id'],
-                    'exercise_id': exercise_data['exercise_id'],
-                    'sets': exercise_data['sets'],
-                    'reps': exercise_data['reps'],
-                    'weight': float(exercise_data['weight']) if exercise_data['weight'] else None
-                })
-                exercises_out.append(exercise_entry)
+            if exercise_data:
+                exercises_out.append(exercise_data)
             else:
                 logger.warning(f"Exercise data retrieval returned no results for exercise: {exercise.exercise_id}")
     except psycopg2.errors.ForeignKeyViolation as error:
@@ -82,14 +75,10 @@ async def create_workout_plan(
     conn.close()
 
     # Return the created workout plan with exercises
-    return workout_schemas.WorkoutPlanOut(
-        plan_id=plan['plan_id'],
-        user_id=plan['user_id'],
-        name=plan['name'],
-        description=plan['description'],
-        created_at=plan['created_at'],
-        exercises=exercises_out,
-    )
+    return workout_schemas.WorkoutPlanOut(plan_id=plan['plan_id'], user_id=plan['user_id'], name=plan['name'],
+                                          description=plan['description'], created_at=plan['created_at'],
+                                          exercises=exercises_out,
+                                          )
 
     # The function first inserts a new workout plan (check workout_schemas.WorkoutPlanCreate)
     # into the workout_plans table and retrieves details
@@ -98,4 +87,109 @@ async def create_workout_plan(
     # executing SQL queries to add them to the workout_plan_exercises table.
     # After completing these operations,
     # the function saves this information to the database, and returns the newly created workout plan
-    # along with its associated exercises.
+    # along with its associated exercises
+    #
+
+
+@router.delete(
+    "/workout-plans/{plan_id}",
+    status_code=status.HTTP_200_OK,
+    summary='Delete a workout plan',
+)
+async def delete_workout_plan(
+        plan_id: str,
+        database_access: list = Depends(connection.get_db),
+        current_user: users_schemas.TokenData = Depends(security.get_current_user)
+):
+    conn, cursor = database_access
+    user_id = current_user.user_id
+
+    # Check if the workout plan exists and belongs to the current user
+    select_plan_query = sql.SQL("""
+        SELECT * FROM workout_plans
+        WHERE plan_id = %s AND user_id = %s
+    """)
+
+    cursor.execute(select_plan_query, (plan_id, user_id))
+    plan = cursor.fetchone()
+
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Workout plan not found or you do not have permission to modify it")
+
+    delete_plan_query = sql.SQL("""
+            DELETE FROM workout_plans
+            WHERE plan_id = %s AND user_id = %s
+            RETURNING *
+        """)
+
+    cursor.execute(delete_plan_query, (plan_id, user_id))
+    deleted = cursor.fetchall()
+    conn.commit()
+    return deleted
+
+
+@router.put(
+    "/workout-plans/{plan_id}",
+    status_code=status.HTTP_200_OK,
+    summary='Update a workout plan',
+    response_model=workout_schemas.WorkoutPlanOut
+)
+async def update_workout_plan(
+        plan_id: str,
+        workout_plan: workout_schemas.WorkoutPlanCreate,
+        database_access: list = Depends(connection.get_db),
+        current_user: users_schemas.TokenData = Depends(security.get_current_user)
+):
+    conn, cursor = database_access
+    user_id = current_user.user_id
+
+    # Update workout plan details
+    update_plan_query = sql.SQL("""
+        UPDATE workout_plans
+        SET name = %s, description = %s
+        WHERE plan_id = %s AND user_id = %s
+        RETURNING plan_id, user_id, name, description, created_at;
+    """)
+    try:
+        cursor.execute(update_plan_query, (workout_plan.name, workout_plan.description, plan_id, user_id))
+        updated_plan = cursor.fetchone()
+        if not updated_plan:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Workout plan not found or not owned by user")
+
+    except Exception as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+    delete_exercises_query = sql.SQL("""
+        DELETE FROM workout_plan_exercises WHERE plan_id = %s
+    """)
+    cursor.execute(delete_exercises_query, (plan_id,))
+
+    insert_exercise_query = sql.SQL("""
+        INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight, comments)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING plan_exercise_id, plan_id, exercise_id, sets, reps, weight, comments;
+    """)
+    exercises_out = []
+    try:
+        for exercise in workout_plan.exercises:
+            cursor.execute(insert_exercise_query, (plan_id, exercise.exercise_id, exercise.sets,
+                                                   exercise.reps, exercise.weight, exercise.comments
+                                                   ))
+            exercise_data = cursor.fetchone()
+            exercises_out.append(exercise_data)
+    except psycopg2.errors.ForeignKeyViolation as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f'Exercise id {exercise.exercise_id} does not exist')
+    except Exception as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return workout_schemas.WorkoutPlanOut(
+        plan_id=updated_plan['plan_id'],user_id=updated_plan['user_id'],name=updated_plan['name'],
+        description=updated_plan['description'],created_at=updated_plan['created_at'],exercises=exercises_out
+    )
