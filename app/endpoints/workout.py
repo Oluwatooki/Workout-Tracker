@@ -139,7 +139,7 @@ async def update_workout_plan(
     conn, cursor = database_access
     user_id = current_user.user_id
 
-    # Update workout plan details
+
     update_plan_query = sql.SQL("""
         UPDATE workout_plans
         SET name = %s, description = %s
