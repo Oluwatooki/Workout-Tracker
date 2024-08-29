@@ -28,7 +28,7 @@ async def create_workout_plan(
     insert_plan_query = sql.SQL("""
         INSERT INTO workout_plans (user_id, name, description)
         VALUES (%s, %s, %s)
-        RETURNING plan_id, user_id, name, description,created_at;
+        RETURNING plan_id, user_id, name, description,created_at,updated_at;
     """)
     try:
         cursor.execute(insert_plan_query, (user_id, workout_plan.name, workout_plan.description))
@@ -43,7 +43,7 @@ async def create_workout_plan(
     insert_exercise_query = sql.SQL("""
         INSERT INTO workout_plan_exercises (plan_id, exercise_id, sets, reps, weight,comments)
         VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING plan_exercise_id, plan_id, exercise_id, sets, reps, weight,comments;
+        RETURNING plan_exercise_id, exercise_id, sets, reps, weight,comments;
     """)
     try:
         for exercise in workout_plan.exercises:
@@ -52,7 +52,7 @@ async def create_workout_plan(
             ))
             exercise_data = cursor.fetchone()
             if exercise_data:
-                exercises_out.append(exercise_data)
+                exercises_out.append(workout_schemas.ExercisePlanOut(**dict(exercise_data)))
             else:
                 logger.warning(f"Exercise data retrieval returned no results for exercise: {exercise.exercise_id}")
     except psycopg2.errors.ForeignKeyViolation as error:
@@ -112,13 +112,11 @@ async def delete_workout_plan(
     delete_plan_query = sql.SQL("""
             DELETE FROM workout_plans
             WHERE plan_id = %s AND user_id = %s
-            RETURNING *
         """)
 
     cursor.execute(delete_plan_query, (plan_id, user_id))
-    deleted = cursor.fetchall()
     conn.commit()
-    return deleted
+    return {'detail':'Workout Plan Successfully deleted'}
 
 
 @router.put(
@@ -141,7 +139,7 @@ async def update_workout_plan(
         UPDATE workout_plans
         SET name = %s, description = %s
         WHERE plan_id = %s AND user_id = %s
-        RETURNING plan_id, user_id, name, description, created_at;
+        RETURNING plan_id, user_id, name, description, created_at, updated_at;
     """)
     try:
         cursor.execute(update_plan_query, (workout_plan.name, workout_plan.description, plan_id, user_id))
@@ -191,7 +189,7 @@ async def update_workout_plan(
     "/workout-plans",
     status_code=status.HTTP_200_OK,
     summary="List all workout plans for the current user",
-    # response_model=list[workout_schemas.WorkoutPlanOut]
+    response_model=list[workout_schemas.WorkoutPlanOutV2]
 )
 async def list_workout_plans(
         database_access: list = Depends(connection.get_db),
@@ -240,7 +238,7 @@ async def list_workout_plans(
     "/workout-plans/{plan_id}",
     status_code=status.HTTP_200_OK,
     summary="List a specific workout plan for the current user",
-    # response_model=list[workout_schemas.WorkoutPlanOut]
+    response_model=workout_schemas.WorkoutPlanOutV2
 )
 async def get_workout_plan(
         plan_id: str,
