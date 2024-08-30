@@ -17,10 +17,9 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 # app.add_middleware(SessionMiddleware, secret_key='your-secret-key')
 
-app = FastAPI(title="Image Processing Service", version='0.2.0',
+app = FastAPI(title="Workout Tracker", version='0.2.0',
               contact={'name': 'Oluwatooki', 'email': 'oluwatooki@gmail.com'},
-              description="An Image Processing service for image manipulation tasks like "
-                          "resizing, cropping, filtering, and format conversion."
+              description="A Workout Tracker where users can"
                           " Based on https://roadmap.sh/projects/image-processing-service",
               # dependencies=[Depends(utils.validate_api_key)]
               )
@@ -44,7 +43,7 @@ app.include_router(scheduled_workouts.router)
 
 @app.get('/',
          summary="Root Endpoint",
-         description="Returns a simple 'Hello World' message.")
+         description="Returns a simple message.")
 async def root():
     """Root endpoint returning a simple message."""
-    return {"Detail": "This is An Image Processing service"}
+    return {"Detail": "This is An Workout Tracker API"}

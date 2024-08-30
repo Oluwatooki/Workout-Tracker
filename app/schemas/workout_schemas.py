@@ -19,10 +19,12 @@ class ExercisePlanCreate(ExercisePlanBase):
 class ExercisePlanOut(ExercisePlanBase):
     # plan_exercise_id: UUID
     exercise_name: str
+    description: str
+    category: str
 
 
 class WorkoutPlanBase(BaseModel):
-    name: str
+    plan_name: str
     description: str | None = None
 
 
@@ -46,8 +48,13 @@ class WorkoutPlanOutV2(WorkoutPlanBase):
     exercises: list[ExercisePlanOut]
     metadata: dict
 
-
+class WorkoutPlanOutV3(BaseModel):
+    plan_name: str
+    description: str | None = None
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    exercises: list[ExercisePlanOut]
 class WorkoutPlanUpdate(BaseModel):
-    name: str
+    plan_name: str
     description: str
     exercises: list[ExercisePlanCreate]

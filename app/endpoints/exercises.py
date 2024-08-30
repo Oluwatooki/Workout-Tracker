@@ -2,6 +2,7 @@ import logging
 from fastapi import HTTPException, status, APIRouter, Depends,  Path
 from app.schemas import exercises_schemas
 from app.db import connection
+from app.db.seeds.seed_exercises import num_exercises
 from psycopg2 import sql
 
 router = APIRouter(tags=['Exercises'])
@@ -36,7 +37,7 @@ async def get_exercises(database_access: list = Depends(connection.get_db)):
     response_model=exercises_schemas.ExerciseModel
 )
 async def get_exercise(
-    exercise_id: int = Path(..., description="The ID of the exercise to retrieve", ge=1),
+    exercise_id: int = Path(..., description="The ID of the exercise to retrieve", ge=1, le=num_exercises),
     database_access: list = Depends(connection.get_db)
 ):
     conn, cursor = database_access
