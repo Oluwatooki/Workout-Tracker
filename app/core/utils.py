@@ -47,6 +47,14 @@ async def fetch_plan_with_exercises(plan_id: str, user_id: str, cursor) -> dict:
         WHERE user_id = %s AND plan_id = %s;
     """
     )
+
+    select_plan_exercises_query = sql.SQL(
+        """
+        SELECT *
+        FROM workout_plan_exercises
+        WHERE plan_id = %s;
+    """
+    )
     try:
         cursor.execute(
             select_plan_query,
@@ -68,13 +76,7 @@ async def fetch_plan_with_exercises(plan_id: str, user_id: str, cursor) -> dict:
             detail="No workout plans found for the user.",
         )
 
-    select_plan_exercises_query = sql.SQL(
-        """
-        SELECT *
-        FROM workout_plan_exercises
-        WHERE plan_id = %s;
-    """
-    )
+
     try:
         cursor.execute(select_plan_exercises_query, (plan["plan_id"],))
         exercises = cursor.fetchall()
