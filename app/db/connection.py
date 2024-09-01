@@ -5,11 +5,7 @@ from psycopg2.extras import RealDictCursor
 from app.core.config import settings
 
 
-# Load environment variables from .env file
-
-
 @contextmanager
-# @retry
 def get_db():
     """Yields conn, cursor
     The Connection and the cursor used to execute commands.

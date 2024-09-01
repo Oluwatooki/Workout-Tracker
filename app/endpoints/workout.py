@@ -167,7 +167,7 @@ async def delete_workout_plan(
             )
         conn.commit()
 
-    return {"message": "Workout plan deleted successfully"}
+        return {"message": "Workout plan deleted successfully"}
 
 
 @router.put(
@@ -364,7 +364,7 @@ async def list_workout_plans(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)
             )
-    return plans
+        return plans
 
 
 @router.get(
@@ -384,4 +384,4 @@ async def get_workout_plan(
     with database_access as (conn, cursor):
         plan = await fetch_plan_with_exercises(plan_id, user_id, cursor)
 
-    return plan
+        return plan
