@@ -68,3 +68,12 @@ CREATE TABLE scheduled_workouts (
     FOREIGN KEY (plan_id) REFERENCES workout_plans(plan_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+CREATE TABLE workout_logs (
+    log_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    scheduled_workout_id UUID REFERENCES scheduled_workouts(scheduled_workout_id) ON DELETE SET NULL,
+    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_time INT,
+    notes TEXT
+);
