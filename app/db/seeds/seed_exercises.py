@@ -30,6 +30,8 @@ exercises = [
      "category": "strength"},
 ]
 
+num_exercises = len(exercises)
+
 
 def insert_exercise(conn, cursor, exercise):
     insert_query = """
@@ -46,7 +48,7 @@ def insert_exercise(conn, cursor, exercise):
 
 
 def seed_exercise_data():
-    conn,cursor = connection.get_db()
+    conn, cursor = connection.get_db()
     for exercise in exercises:
         try:
             insert_exercise(conn=conn, cursor=cursor, exercise=exercise)
@@ -60,4 +62,3 @@ if __name__ == '__main__':
     print('Starting...')
     seed_exercise_data()
     print('...Ending')
-

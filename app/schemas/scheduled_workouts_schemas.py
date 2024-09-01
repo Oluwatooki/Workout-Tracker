@@ -3,6 +3,8 @@ from uuid import UUID
 from enum import Enum
 from pydantic import BaseModel
 
+from app.schemas.workout_schemas import WorkoutPlanOutV3
+
 
 class StatusEnum(str, Enum):
     pending = 'pending'
@@ -39,3 +41,4 @@ class ScheduledWorkoutOut(ScheduledWorkoutBase):
     scheduled_workout_id: UUID
     user_id: UUID
     created_at: datetime.datetime
+    plan_details: WorkoutPlanOutV3
