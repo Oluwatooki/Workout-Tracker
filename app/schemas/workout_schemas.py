@@ -48,12 +48,15 @@ class WorkoutPlanOutV2(WorkoutPlanBase):
     exercises: list[ExercisePlanOut]
     metadata: dict
 
+
 class WorkoutPlanOutV3(BaseModel):
     plan_name: str
     description: str | None = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
     exercises: list[ExercisePlanOut]
+
+
 class WorkoutPlanUpdate(BaseModel):
     plan_name: str
     description: str

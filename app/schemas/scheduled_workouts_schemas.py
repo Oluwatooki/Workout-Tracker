@@ -3,7 +3,7 @@ from uuid import UUID
 from enum import Enum
 from pydantic import BaseModel
 
-from app.schemas.workout_schemas import ExercisePlanOut, WorkoutPlanOutV3
+from app.schemas.workout_schemas import WorkoutPlanOutV3
 
 
 class StatusEnum(str, Enum):
