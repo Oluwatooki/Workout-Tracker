@@ -76,7 +76,6 @@ async def fetch_plan_with_exercises(plan_id: str, user_id: str, cursor) -> dict:
             detail="No workout plans found for the user.",
         )
 
-
     try:
         cursor.execute(select_plan_exercises_query, (plan["plan_id"],))
         exercises = cursor.fetchall()
