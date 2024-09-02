@@ -1,13 +1,13 @@
 import datetime
 from uuid import UUID
-
+from fastapi import Body
 from pydantic import BaseModel
 
 
 class ExercisePlanBase(BaseModel):
     exercise_id: int
-    sets: int
-    reps: int
+    sets: int = Body(..., ge=0)
+    reps: int = Body(..., ge=0)
     weight: float | int | None = None
     comments: str | None = None
 
