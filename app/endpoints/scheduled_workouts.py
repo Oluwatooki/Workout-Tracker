@@ -1,6 +1,5 @@
 import logging
 from fastapi import HTTPException, status, APIRouter, Depends, Request, Query
-
 from app.core.utils import fetch_plan_with_exercises
 from app.schemas import users_schemas, scheduled_workouts_schemas
 from app.db import connection
@@ -142,6 +141,11 @@ async def get_workout_schedules(
                 schedule["plan_id"], user_id, cursor
             )
             workout_schedule_out[x].update({"plan_details": plan_details})
+
+        if not workout_schedule_out:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Schedule Not found"
+            )
 
         return workout_schedule_out
 

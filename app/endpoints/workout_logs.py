@@ -1,10 +1,9 @@
 import logging
-
 import psycopg2
 from fastapi import HTTPException, status, APIRouter, Depends, Request, Query
 from app.schemas import users_schemas, logs_schemas
 from app.db import connection
-from app.core import security, utils
+from app.core import security
 from psycopg2 import sql
 
 router = APIRouter(tags=["Workout Logs"])
@@ -22,7 +21,7 @@ async def create_workout_log(
     database_access: list = Depends(connection.get_db),
     current_user: users_schemas.TokenData = Depends(security.get_current_user),
 ):
-    # conn, cursor = database_access
+
     user_id = current_user.user_id
 
     insert_log_query = sql.SQL(
