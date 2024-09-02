@@ -7,6 +7,7 @@ from app.endpoints import (
     workout,
     scheduled_workouts,
     workout_logs,
+    reports,
 )
 import logging
 
@@ -44,6 +45,7 @@ app.include_router(exercises.router)
 app.include_router(workout.router)
 app.include_router(scheduled_workouts.router)
 app.include_router(workout_logs.router)
+app.include_router(reports.router)
 
 
 @app.get("/", summary="Root Endpoint", description="Returns a simple message.")
