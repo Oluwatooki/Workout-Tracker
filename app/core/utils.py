@@ -39,30 +39,27 @@ async def update_missed_workouts(user_id: str, conn, cursor):
 
 
 async def fetch_plan_with_exercises(plan_id: str, user_id: str, cursor) -> dict:
-    # Fetch the plan details
+    # SQL query to fetch the workout plan details
     select_plan_query = sql.SQL(
         """
         SELECT plan_id, user_id, name AS plan_name, description, created_at, updated_at
         FROM workout_plans
         WHERE user_id = %s AND plan_id = %s;
-    """
+        """
     )
 
+    # SQL query to fetch the exercises associated with the plan
     select_plan_exercises_query = sql.SQL(
         """
         SELECT *
         FROM workout_plan_exercises
         WHERE plan_id = %s;
-    """
+        """
     )
+
     try:
-        cursor.execute(
-            select_plan_query,
-            (
-                user_id,
-                plan_id,
-            ),
-        )
+        # Execute the query to fetch the workout plan
+        cursor.execute(select_plan_query, (user_id, plan_id))
         plan = cursor.fetchone()
     except Exception as error:
         logger.error(f"Error occurred: {str(error)}", exc_info=True)
@@ -77,19 +74,25 @@ async def fetch_plan_with_exercises(plan_id: str, user_id: str, cursor) -> dict:
         )
 
     try:
+        # Fetch the exercises related to the plan
         cursor.execute(select_plan_exercises_query, (plan["plan_id"],))
         exercises = cursor.fetchall()
+
         for x, exercise in enumerate(exercises):
+            # Fetch additional exercise details
             select_query = sql.SQL(
                 """SELECT name AS exercise_name, description, category 
-                                      FROM exercises WHERE exercise_id = %s"""
+                FROM exercises WHERE exercise_id = %s"""
             )
             cursor.execute(select_query, (exercise["exercise_id"],))
 
             exercise_extra_info = dict(cursor.fetchone())
             exercises[x].update(**exercise_extra_info)
+
+        # Add the exercises and metadata to the plan
         plan.update({"exercises": exercises})
         plan.update({"metadata": {"exercise_count": len(exercises)}})
+
     except Exception as error:
         logger.error(f"Error occurred: {str(error)}", exc_info=True)
         raise HTTPException(
