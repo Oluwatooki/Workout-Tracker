@@ -7,6 +7,7 @@ It is inspired by the [Fitness Workout Tracker project](https://roadmap.sh/proje
 ## Table of Contents
 
 - [Installation](#installation)
+- [Database Setup](#database-setup)
 - [Usage](#usage)
   - [Users](#users)
   - [Exercises](#exercises)
@@ -62,6 +63,15 @@ To run this project locally:
    python run.py
    ```
    The application will start, and you can access the API documentation at `http://127.0.0.1:8000/docs`.
+
+## Database Setup
+
+1. Make sure you have PostgreSQL installed and running.
+
+2. Create a new database for the application.
+
+3. Run the `create_schema.sql` script to set up the necessary tables:
+
 
 ## Usage
 
