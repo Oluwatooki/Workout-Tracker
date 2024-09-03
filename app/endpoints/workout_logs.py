@@ -1,9 +1,10 @@
 import logging
+from typing import Annotated
 import psycopg2
-from fastapi import HTTPException, status, APIRouter, Depends, Request, Query
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Query, Body
 from app.schemas import users_schemas, logs_schemas
 from app.db import connection
-from app.core import security
+from app.core import security, docs, examples
 from psycopg2 import sql
 
 router = APIRouter(tags=["Workout Logs"])
@@ -15,9 +16,10 @@ logger = logging.getLogger(__name__)
     status_code=status.HTTP_201_CREATED,
     summary="Log a workout.",
     response_model=logs_schemas.WorkoutLogOut,
+    description=docs.create_workout_log,
 )
 async def create_workout_log(
-    workout_log: logs_schemas.WorkoutLogCreate,
+    workout_log: Annotated[logs_schemas.WorkoutLogCreate, Body(openapi_examples=examples.workout_log_examples)],
     database_access: list = Depends(connection.get_db),
     current_user: users_schemas.TokenData = Depends(security.get_current_user),
 ):
@@ -54,7 +56,7 @@ async def create_workout_log(
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Error logging workout: scheduled Workout Not Found "
+                detail=f"Error logging workout: scheduled Workout Not Found ",
             )
 
         except Exception as error:
@@ -81,6 +83,7 @@ async def create_workout_log(
     status_code=status.HTTP_200_OK,
     summary="List all workout logs for the current User",
     response_model=list[logs_schemas.WorkoutLogOut],
+    description=docs.list_workout_logs
 )
 async def list_workout_logs(
     database_access: list = Depends(connection.get_db),
@@ -128,6 +131,7 @@ async def list_workout_logs(
     status_code=status.HTTP_200_OK,
     summary="List a specific workout log for the current User",
     response_model=logs_schemas.WorkoutLogOut,
+    description=docs.get_workout_log
 )
 async def list_workout_logs(
     log_id: str,
@@ -147,7 +151,7 @@ async def list_workout_logs(
 
     with database_access as (conn, cursor):
         try:
-            cursor.execute(select_logs_query, (user_id,log_id))
+            cursor.execute(select_logs_query, (user_id, log_id))
             logs = cursor.fetchone()
         except Exception as error:
             logger.error(

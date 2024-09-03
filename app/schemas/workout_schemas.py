@@ -1,15 +1,17 @@
 import datetime
 from uuid import UUID
 from fastapi import Body
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ExercisePlanBase(BaseModel):
-    exercise_id: int
-    sets: int = Body(..., ge=0)
-    reps: int = Body(..., ge=0)
-    weight: float | int | None = None
-    comments: str | None = None
+    exercise_id: int = Field(..., example=4)
+    sets: int = Field(..., ge=0, example=10)
+    reps: int = Field(..., ge=0, example=6)
+    weight: float | int | None = Field(
+        None,ge=0,example=20
+    )
+    comments: str | None = Field(None,example='This may be strenuous')
 
 
 class ExercisePlanCreate(ExercisePlanBase):
@@ -17,15 +19,16 @@ class ExercisePlanCreate(ExercisePlanBase):
 
 
 class ExercisePlanOut(ExercisePlanBase):
-    # plan_exercise_id: UUID
-    exercise_name: str
-    description: str
-    category: str
+    exercise_name: str = Field(...,example='Plank')
+    description: str = Field(..., example='A basic plank')
+    category: str = Field(...,example='flexibility')
 
 
 class WorkoutPlanBase(BaseModel):
-    plan_name: str
-    description: str | None = None
+    plan_name: str = Field(..., example="Full Body Workout")
+    description: str | None = Field(
+        None, example="This Workout focuses on your entire body"
+    )
 
 
 class WorkoutPlanCreate(WorkoutPlanBase):
@@ -46,12 +49,12 @@ class WorkoutPlanOutV2(WorkoutPlanBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
     exercises: list[ExercisePlanOut]
-    metadata: dict
+    metadata: dict = Field(...,example={'exercise_count':1})
 
 
 class WorkoutPlanOutV3(BaseModel):
-    plan_name: str
-    description: str | None = None
+    plan_name: str = Field(...,example='Full Body workout')
+    description: str | None = Field(None,example='This involves your entire body')
     created_at: datetime.datetime
     updated_at: datetime.datetime
     exercises: list[ExercisePlanOut]

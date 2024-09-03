@@ -1,11 +1,14 @@
 import logging
-from fastapi import HTTPException, status, APIRouter, Depends, Request, Query
+from typing import Annotated
+
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Query, Body
 from app.core.utils import fetch_plan_with_exercises
 from app.schemas import users_schemas, scheduled_workouts_schemas
 from app.db import connection
-from app.core import security, utils
+from app.core import security, utils, examples, docs
 from psycopg2 import sql
 
+# Setup router and logging
 router = APIRouter(tags=["Scheduled Workout Management"])
 logger = logging.getLogger(__name__)
 
@@ -15,33 +18,37 @@ logger = logging.getLogger(__name__)
     status_code=status.HTTP_201_CREATED,
     summary="Schedule a workout.",
     response_model=scheduled_workouts_schemas.ScheduledWorkoutOut,
+    description=docs.create_workout_schedule
 )
 async def create_workout_schedule(
-    scheduled_workout: scheduled_workouts_schemas.ScheduledWorkoutCreate,
+    scheduled_workout: Annotated[scheduled_workouts_schemas.ScheduledWorkoutCreate,Body
+        (openapi_examples=examples.workout_schedule_examples)],
     database_access: list = Depends(connection.get_db),
     current_user: users_schemas.TokenData = Depends(security.get_current_user),
 ):
-
     user_id = current_user.user_id
 
+    # SQL query to verify if the workout plan exists for the user
     plan_id_check_query = sql.SQL(
         """
         SELECT plan_id
         FROM workout_plans
         WHERE user_id = %s AND plan_id = %s
-    """
+        """
     )
 
+    # SQL query to insert the scheduled workout into the database
     insert_schedule_query = sql.SQL(
         """
-            INSERT INTO scheduled_workouts (plan_id, user_id, scheduled_date, scheduled_time, status)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING *;
+        INSERT INTO scheduled_workouts (plan_id, user_id, scheduled_date, scheduled_time, status)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING *;
         """
     )
 
     with database_access as (conn, cursor):
         try:
+            # Check if the workout plan exists and belongs to the user
             cursor.execute(plan_id_check_query, (user_id, scheduled_workout.plan_id))
             plan_id_verification = cursor.fetchone()
         except Exception as error:
@@ -54,10 +61,11 @@ async def create_workout_schedule(
 
         if not plan_id_verification:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Workout Plan Not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Workout Plan Not Found"
             )
 
         try:
+            # Insert the scheduled workout into the database
             cursor.execute(
                 insert_schedule_query,
                 (
@@ -78,10 +86,14 @@ async def create_workout_schedule(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)
             )
 
+        # Fetch the details of the workout plan including the exercises
         plan_details = await fetch_plan_with_exercises(
             scheduled_workout.plan_id, user_id, cursor
         )
+
+        # Attach the plan details to the scheduled workout output
         workout_schedule_out.update({"plan_details": plan_details})
+
         conn.commit()
 
         return workout_schedule_out
@@ -89,43 +101,47 @@ async def create_workout_schedule(
 
 @router.get(
     "/scheduled-workouts",
-    status_code=status.HTTP_201_CREATED,
-    summary="Get a list of scheduled workouts.",
+    status_code=status.HTTP_200_OK,
+    summary="List all scheduled workouts for the authenticated user.",
     response_model=list[scheduled_workouts_schemas.ScheduledWorkoutOut],
+    description=docs.list_workout_schedules,
 )
 async def get_workout_schedules(
     workout_status: scheduled_workouts_schemas.StatusChoice,
     database_access: list = Depends(connection.get_db),
     current_user: users_schemas.TokenData = Depends(security.get_current_user),
-    limit: int = 2,
+    limit: int = 10,
     skip: int = 0,
 ):
 
     user_id = current_user.user_id
 
+    # Conditionally add the status filter if it's not set to 'all'
     all_or_something = "AND status = %s" if workout_status != "all" else " "
 
+    # SQL query to retrieve scheduled workouts with optional status filtering
     workout_schedule_query = f"""
-                SELECT *
-                FROM scheduled_workouts
-                WHERE user_id = %s {all_or_something}
-                ORDER BY scheduled_date,scheduled_time DESC
-                LIMIT %s
-                OFFSET %s;
-            """
+        SELECT *
+        FROM scheduled_workouts
+        WHERE user_id = %s {all_or_something}
+        ORDER BY scheduled_date, scheduled_time DESC
+        LIMIT %s
+        OFFSET %s;
+    """
 
     with database_access as (conn, cursor):
+        # Update missed workouts before retrieving the schedule
+        await utils.update_missed_workouts(user_id=user_id, conn=conn, cursor=cursor)
 
-        await utils.update_missed_workouts(
-            user_id=user_id, conn = conn, cursor=cursor
-        )
-
+        # Prepare parameters based on the status filter
         params = (
             (user_id, workout_status, limit, skip)
             if workout_status != "all"
             else (user_id, limit, skip)
         )
+
         try:
+            # Execute the query to get the scheduled workouts
             cursor.execute(workout_schedule_query, params)
             workout_schedule_out = cursor.fetchall()
         except Exception as error:
@@ -136,6 +152,8 @@ async def get_workout_schedules(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)
             )
+
+        # Fetch and attach plan details for each scheduled workout
         for x, schedule in enumerate(workout_schedule_out):
             plan_details = await fetch_plan_with_exercises(
                 schedule["plan_id"], user_id, cursor
@@ -144,7 +162,7 @@ async def get_workout_schedules(
 
         if not workout_schedule_out:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Schedule Not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Schedule Not Found"
             )
 
         return workout_schedule_out
@@ -152,9 +170,10 @@ async def get_workout_schedules(
 
 @router.get(
     "/scheduled-workouts/{scheduled_workout_id}",
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     summary="Get a scheduled workout.",
     response_model=scheduled_workouts_schemas.ScheduledWorkoutOut,
+    description=docs.get_workout_schedule,
 )
 async def get_workout_schedule(
     scheduled_workout_id: str,
@@ -164,16 +183,20 @@ async def get_workout_schedule(
 
     user_id = current_user.user_id
 
+    # SQL query to retrieve a specific scheduled workout by its ID
     workout_schedule_query = f"""
-                        SELECT *
-                        FROM scheduled_workouts
-                        WHERE user_id = %s AND scheduled_workout_id = %s
-                        ORDER BY scheduled_date,scheduled_time
-                    """
+        SELECT *
+        FROM scheduled_workouts
+        WHERE user_id = %s AND scheduled_workout_id = %s
+        ORDER BY scheduled_date, scheduled_time
+    """
+
     with database_access as (conn, cursor):
-        await utils.update_missed_workouts(user_id, conn,cursor)
+        # Update missed workouts before retrieving the specific schedule
+        await utils.update_missed_workouts(user_id, conn, cursor)
 
         try:
+            # Execute the query to get the specific scheduled workout
             cursor.execute(workout_schedule_query, (user_id, scheduled_workout_id))
             workout_schedule_out = cursor.fetchone()
         except Exception as error:
@@ -187,9 +210,10 @@ async def get_workout_schedule(
 
         if not workout_schedule_out:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Schedule Not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Schedule Not Found"
             )
 
+        # Fetch and attach plan details to the workout schedule
         plan_details = await fetch_plan_with_exercises(
             workout_schedule_out["plan_id"], user_id, cursor
         )
@@ -201,12 +225,13 @@ async def get_workout_schedule(
 @router.patch(
     "/scheduled-workouts/{scheduled_workout_id}",
     status_code=status.HTTP_200_OK,
-    summary="Update a workout plan",
+    summary="Update a scheduled workout",
     response_model=scheduled_workouts_schemas.ScheduledWorkoutOut,
+    description=docs.update_workout_schedule,
 )
 async def update_workout_plan(
     scheduled_workout_id: str,
-    scheduled_workout_update: scheduled_workouts_schemas.ScheduledWorkoutUpdate,
+    scheduled_workout_update: Annotated[scheduled_workouts_schemas.ScheduledWorkoutUpdate,Body(openapi_examples=examples.workout_schedule_examples)],
     database_access: list = Depends(connection.get_db),
     current_user: users_schemas.TokenData = Depends(security.get_current_user),
 ):
@@ -244,7 +269,7 @@ async def update_workout_plan(
                     detail="Workout Plan Not found",
                 )
 
-        await utils.update_missed_workouts(user_id, conn,cursor)
+        await utils.update_missed_workouts(user_id, conn, cursor)
         updated_data = scheduled_workout_update.model_dump(exclude_unset=True)
 
         update_plan_query = """ UPDATE scheduled_workouts SET """
@@ -285,7 +310,8 @@ async def update_workout_plan(
 @router.delete(
     "/scheduled-workouts/{scheduled_workout_id}",
     status_code=status.HTTP_200_OK,
-    summary="Delete a scheduled workout.",
+    summary="Cancel a scheduled workout",
+    description=docs.delete_workout_schedule
 )
 async def delete_scheduled_workout(
     scheduled_workout_id: str,
